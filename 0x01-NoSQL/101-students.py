@@ -19,12 +19,23 @@ def top_students(mongo_collection):
         each with an "averageScore" key added.
     """
 
-    students = []
-    for student in mongo_collection.find():
-        scores = student.get("scores", [])
-        if scores:
-            average_score = mean(scores)
-            student["averageScore"] = average_score
-            students.append(student)
-
-    return sorted(students, key=lambda x: x["averageScore"], reverse=True)
+    students = mongo_collection.aggregate(
+        [
+            {
+                '$project': {
+                    '_id': 1,
+                    'name': 1,
+                    'averageScore': {
+                        '$avg': {
+                            '$avg': '$topics.score',
+                        },
+                    },
+                    'topics': 1,
+                },
+            },
+            {
+                '$sort': {'averageScore': -1},
+            },
+        ]
+    )
+    return students
